@@ -1,0 +1,50 @@
+name: Portfolio live website check
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - tests/check_live_sites.py
+      - .github/workflows/check-live-sites.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout test script
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install browser testing dependency
+        run: python -m pip install selenium==4.36.0
+
+      - name: Check published portfolio and project websites
+        run: python tests/check_live_sites.py
+
+      - name: Show results in run summary
+        if: always()
+        run: |
+          if [ -f site-check-results.md ]; then
+            cat site-check-results.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo 'The test stopped before creating its report; inspect the job log.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Attach browser screenshots and results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: live-website-check
+          path: |
+            site-check-screenshots/
+            site-check-results.md
+          if-no-files-found: ignore
